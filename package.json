@@ -1,0 +1,10 @@
+{
+  "name": "shoot-em-all",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Arcade shooter: hold your ground in the middle and blast everything that comes at you.",
+  "scripts": {
+    "dev": "node tools/dev-server.mjs 5173",
+    "build": "node tools/build.mjs"
+  }
+}

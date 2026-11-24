@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Store Covers</title>
+<style>
+  body { margin: 0; padding: 16px; background: #111; color: #eee; font-family: system-ui, sans-serif; }
+  canvas { display: block; max-width: 100%; height: auto; margin: 12px 0 24px; border: 1px solid #333; }
+  button { padding: 10px 18px; font-size: 15px; }
+</style>
+</head>
+<body>
+<h1>Shoot 'Em All: store covers</h1>
+<p>Rendered at exact CrazyGames sizes. Run through <code>npm run dev</code> and press Save to write the PNGs into <code>store/</code>.</p>
+<button id="save">Save PNGs to store/</button> <span id="status"></span>
+<div id="out"></div>
+<script>
+const SIZES = [
+  { name: 'cover-landscape-1920x1080.png', w: 1920, h: 1080 },
+  { name: 'cover-portrait-800x1200.png', w: 800, h: 1200 },
+  { name: 'cover-square-800x800.png', w: 800, h: 800 },
+];
+const TAU = Math.PI * 2;
+
+function rng(seed) {
+  return () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+}
+
+function polygon(ctx, x, y, r, sides, rot) {
+  ctx.beginPath();
+  for (let i = 0; i < sides; i++) {
+    const a = rot + (i / sides) * TAU;
+    ctx[i ? 'lineTo' : 'moveTo'](x + Math.cos(a) * r, y + Math.sin(a) * r);
+  }
+  ctx.closePath();
+}
+
+function render({ w, h }) {
+  const cv = document.createElement('canvas');
+  cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d');
+  const R = rng(7);
+  const s = Math.min(w, h) / 800;
+  const portrait = h > w * 1.1;
+  const square = !portrait && h > w * 0.8;
+  const px = w / 2;
+  const py = portrait ? h * 0.62 : square ? h * 0.6 : h * 0.56;
+  const sx = landscapeShift();
+  function landscapeShift() { return (!portrait && !square) ? w * 0.17 : 0; }
+  const cx = px + sx, cy = py;
+
+  // background
+  ctx.fillStyle = '#06070e';
+  ctx.fillRect(0, 0, w, h);
+  let g = ctx.createRadialGradient(cx, cy, 10, cx, cy, Math.max(w, h) * 0.7);
+  g.addColorStop(0, 'rgba(40,120,170,0.35)');
+  g.addColorStop(0.4, 'rgba(30,30,90,0.18)');
+  g.addColorStop(1, 'rgba(6,7,14,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+
+  // star dust
+  for (let i = 0; i < 260; i++) {
+    ctx.globalAlpha = R() * 0.5;
+    ctx.fillStyle = '#9fd8ff';
+    ctx.fillRect(R() * w, R() * h, 1.5 * s, 1.5 * s);
+  }
+  ctx.globalAlpha = 1;
+
+  // rings
+  for (const [r, a] of [[120, 0.25], [230, 0.12], [360, 0.07]]) {
+    ctx.strokeStyle = `rgba(77,232,255,${a})`;
+    ctx.lineWidth = 3 * s;
+    ctx.beginPath(); ctx.arc(cx, cy, r * s, 0, TAU); ctx.stroke();
+  }
+
+  // title layout (computed first so the scene can keep clear of it)
+  const lines = [['SHOOT', 'white'], ["'EM", 'warm'], ['ALL', 'cyan']];
+  const FONT = (px) => `italic 900 ${px}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
+  let size, tx, ty, align;
+  if (portrait) { size = 150 * s; tx = w / 2; ty = h * 0.07; align = 'center'; }
+  else if (square) { size = 108 * s; tx = w / 2; ty = h * 0.06; align = 'center'; }
+  else { size = 190 * s; tx = w * 0.06; ty = h * 0.14; align = 'left'; }
+  const oneLine = square;
+  ctx.font = FONT(size);
+  if (oneLine) {
+    const tw = ctx.measureText("SHOOT 'EM ALL").width;
+    if (tw > w * 0.9) { size *= (w * 0.9) / tw; ctx.font = FONT(size); }
+  }
+  const titleW = oneLine ? ctx.measureText("SHOOT 'EM ALL").width : ctx.measureText('SHOOT').width;
+  const titleH = oneLine ? size * 1.05 : size * 0.88 * 2 + size;
+  const tLeft = align === 'center' ? tx - titleW / 2 : tx;
+  const titleBox = { x0: tLeft - 40 * s, x1: tLeft + titleW + 40 * s, y0: ty - 30 * s, y1: ty + titleH + 20 * s };
+  const clearOfTitle = (x, y, r) => x + r < titleBox.x0 || x - r > titleBox.x1 || y + r < titleBox.y0 || y - r > titleBox.y1;
+
+  const enemies = [
+    ['circle', '#ff5d7a', -2.6, 320, 44], ['tri', '#ffd84d', -0.6, 300, 18], ['diamond', '#ff4d9d', 0.4, 260, 26],
+    ['split', '#7dff6a', 2.3, 290, 44], ['hex', '#ff8a3d', 1.3, 330, 60], ['circle', '#8f7dff', -1.6, 360, 34],
+    ['circle', '#4dd2ff', 2.9, 240, 24], ['tri', '#ffd84d', 3.6, 380, 18], ['diamond', '#ff4d9d', -2.1, 220, 22],
+    ['circle', '#7dffb0', -0.1, 440, 30], ['hex', '#ff8a3d', 4.4, 470, 52], ['circle', '#ff6bd0', 5.2, 330, 26],
+  ];
+
+  // bullets streaking toward enemies + trails
+  for (const [, , a, d] of enemies.slice(0, 7)) {
+    for (let k = 0; k < 6; k++) {
+      const t = 0.3 + k * 0.1;
+      ctx.globalAlpha = 0.25 + k * 0.13;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(cx + Math.cos(a) * d * s * t, cy + Math.sin(a) * d * s * t, 6 * s, 0, TAU);
+      ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // enemies with motion trails
+  for (const [shape, col, a, d, r] of enemies) {
+    const ex = cx + Math.cos(a) * d * s * (portrait ? 1.05 : 1.3);
+    const ey = cy + Math.sin(a) * d * s * (portrait ? 1.25 : 1);
+    const er = r * s;
+    if (!clearOfTitle(ex, ey, er * 3)) continue;
+    for (let k = 4; k >= 0; k--) {
+      ctx.globalAlpha = k === 0 ? 1 : 0.12 / k;
+      drawEnemy(ex + Math.cos(a) * k * er * 0.5, ey + Math.sin(a) * k * er * 0.5, er);
+    }
+    function drawEnemy(x, y, rr) {
+      ctx.fillStyle = col; ctx.strokeStyle = col;
+      ctx.shadowColor = col; ctx.shadowBlur = 30 * s;
+      if (shape === 'circle') { ctx.beginPath(); ctx.arc(x, y, rr, 0, TAU); ctx.fill(); }
+      if (shape === 'tri') {
+        const b = a + Math.PI;
+        ctx.beginPath();
+        ctx.moveTo(x + Math.cos(b) * rr * 1.5, y + Math.sin(b) * rr * 1.5);
+        ctx.lineTo(x + Math.cos(b + 2.5) * rr, y + Math.sin(b + 2.5) * rr);
+        ctx.lineTo(x + Math.cos(b - 2.5) * rr, y + Math.sin(b - 2.5) * rr);
+        ctx.closePath(); ctx.fill();
+      }
+      if (shape === 'diamond') { polygon(ctx, x, y, rr * 1.25, 4, 0.3); ctx.fill(); }
+      if (shape === 'hex') { polygon(ctx, x, y, rr, 6, 0.2); ctx.fill(); }
+      if (shape === 'split') {
+        ctx.lineWidth = rr * 0.18; ctx.beginPath(); ctx.arc(x, y, rr * 0.9, 0, TAU); ctx.stroke();
+        for (let i = 0; i < 3; i++) {
+          const q = (i / 3) * TAU + 0.4;
+          ctx.beginPath(); ctx.arc(x + Math.cos(q) * rr * 0.38, y + Math.sin(q) * rr * 0.38, rr * 0.24, 0, TAU); ctx.fill();
+        }
+      }
+      ctx.shadowBlur = 0;
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // explosions
+  const blasts = [[-0.6, 190, '#ffd84d'], [2.3, 200, '#7dff6a'], [0.9, 170, '#ff4d9d'], [-2.3, 210, '#ff5d7a']];
+  for (const [a, d, col] of blasts) {
+    const bx = cx + Math.cos(a) * d * s * (portrait ? 1 : 1.25), by = cy + Math.sin(a) * d * s;
+    ctx.strokeStyle = col; ctx.globalAlpha = 0.5; ctx.lineWidth = 3 * s;
+    ctx.beginPath(); ctx.arc(bx, by, 40 * s, 0, TAU); ctx.stroke();
+    for (let i = 0; i < 55; i++) {
+      const q = R() * TAU, dd = R() * 85 * s;
+      ctx.globalAlpha = 0.3 + R() * 0.7;
+      ctx.fillStyle = col;
+      const ps = (1.5 + R() * 4) * s;
+      ctx.fillRect(bx + Math.cos(q) * dd, by + Math.sin(q) * dd, ps, ps);
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // player
+  const pr = 46 * s;
+  ctx.save();
+  ctx.translate(cx, cy); ctx.rotate(-0.6);
+  ctx.fillStyle = '#cfefff';
+  ctx.fillRect(pr * 0.3, -pr * 0.21, pr * 1.05, pr * 0.42);
+  ctx.restore();
+  ctx.shadowColor = '#7fe9ff'; ctx.shadowBlur = 60 * s;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.arc(cx, cy, pr, 0, TAU); ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#0d1a2a'; ctx.beginPath(); ctx.arc(cx, cy, pr * 0.42, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#4de8ff'; ctx.beginPath(); ctx.arc(cx, cy, pr * 0.22, 0, TAU); ctx.fill();
+  ctx.strokeStyle = '#7dffea'; ctx.lineWidth = 4 * s; ctx.globalAlpha = 0.8;
+  ctx.beginPath(); ctx.arc(cx, cy, pr + 16 * s, 0, TAU); ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // title (the only text allowed on covers)
+  ctx.font = FONT(size);
+  ctx.textAlign = align;
+  ctx.textBaseline = 'top';
+  function fillFor(kind, y0, y1, x0, x1) {
+    let gr;
+    if (kind === 'warm') { gr = ctx.createLinearGradient(x0, 0, x1, 0); gr.addColorStop(0, '#ff4d9d'); gr.addColorStop(1, '#ffd84d'); }
+    else { gr = ctx.createLinearGradient(0, y0, 0, y1); gr.addColorStop(0, '#ffffff'); gr.addColorStop(1, kind === 'cyan' ? '#4de8ff' : '#bff4ff'); }
+    return gr;
+  }
+  ctx.shadowColor = 'rgba(77,232,255,0.6)';
+  ctx.shadowBlur = 40 * s;
+  if (oneLine) {
+    let x = tx - ctx.measureText("SHOOT 'EM ALL").width / 2;
+    ctx.textAlign = 'left';
+    for (const [word, kind] of lines) {
+      const ww = ctx.measureText(word + ' ').width;
+      ctx.fillStyle = fillFor(kind, ty, ty + size, x, x + ww);
+      ctx.fillText(word, x, ty);
+      x += ww;
+    }
+  } else {
+    lines.forEach(([word, kind], i) => {
+      const y = ty + i * size * 0.88;
+      const ww = ctx.measureText(word).width;
+      const x0 = align === 'center' ? tx - ww / 2 : tx;
+      ctx.fillStyle = fillFor(kind, y, y + size, x0, x0 + ww);
+      ctx.fillText(word, tx, y);
+    });
+  }
+  ctx.shadowBlur = 0;
+  return cv;
+}
+
+const out = document.getElementById('out');
+const canvases = SIZES.map((sz) => {
+  const cv = render(sz);
+  const label = document.createElement('div');
+  label.textContent = `${sz.name} (${sz.w}×${sz.h})`;
+  out.append(label, cv);
+  return [sz.name, cv];
+});
+
+document.getElementById('save').onclick = async () => {
+  const status = document.getElementById('status');
+  for (const [name, cv] of canvases) {
+    const res = await fetch('/__save?name=' + encodeURIComponent(name), { method: 'POST', body: cv.toDataURL('image/png') });
+    status.textContent = res.ok ? `saved ${name}` : `failed ${name}`;
+    if (!res.ok) return;
+  }
+  status.textContent = 'All covers saved to store/';
+};
+</script>
+</body>
+</html>
