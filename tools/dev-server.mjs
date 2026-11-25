@@ -23,13 +23,16 @@ const server = http.createServer((req, res) => {
 
   if (req.method === 'POST' && url.pathname === '/__save') {
     const name = url.searchParams.get('name') || '';
-    if (!/^[\w-]+\.png$/.test(name)) { res.writeHead(400).end('bad name'); return; }
+    if (!/^[\w-]+\.(png|mp4|webm)$/.test(name)) { res.writeHead(400).end('bad name'); return; }
     const chunks = [];
     req.on('data', (c) => chunks.push(c));
     req.on('end', () => {
-      const body = Buffer.concat(chunks).toString();
-      const b64 = body.replace(/^data:image\/png;base64,/, '');
-      fs.writeFileSync(path.join(storeDir, name), Buffer.from(b64, 'base64'));
+      const raw = Buffer.concat(chunks);
+      // PNGs arrive as a data URL; videos arrive as raw bytes
+      const data = name.endsWith('.png')
+        ? Buffer.from(raw.toString().replace(/^data:image\/png;base64,/, ''), 'base64')
+        : raw;
+      fs.writeFileSync(path.join(storeDir, name), data);
       console.log('saved', name);
       res.writeHead(200).end('ok');
     });

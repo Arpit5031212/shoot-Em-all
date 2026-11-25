@@ -4,7 +4,7 @@
 ```
 npm run build
 ```
-Upload **`build/shoot-em-all.zip`** (index.html sits at the zip root, about 30 KB, 6 files).
+Upload **`build/shoot-em-all.zip`** (index.html sits at the zip root, about 34 KB, 6 files).
 
 Test locally first with `npm run dev` and open http://localhost:5173/src/.
 On localhost the CrazyGames SDK runs in `local` mode and shows demo ads, so the
@@ -36,15 +36,20 @@ You need to do this part yourself: create the account, fill in the form, submit.
 **Description**
 > You're the core, and everything on screen wants to reach you. Aim and hold to fire as waves of
 > enemies close in from every side. Darts rush in, zigzaggers weave, splitters break into
-> swarms and tanks soak up your bullets. After every wave, pick a booster: piercing bullets, side
-> cannons, orbiting drones, chain lightning, critical hits and more. You can only hold three at a
-> time, so every pick is a trade-off. Every 5 waves one of 11 bosses arrives, each with its own
-> trick: a Teleporter that blinks across the screen, Pincers that revive each other, a Slider that
-> races along the walls, a Jack in the Box with a Hive inside, and more. Every boss bursts out a
-> swarm of enemies each time it loses a quarter of its health. Mini bosses crash the regular waves
-> too, and burst into a new wave of enemies when you take them down.
-> Chain kills for up to x5 score and shoot power-ups to grab Spread Shot, Rapid Fire, Shields and
-> Bombs. How many waves can you survive?
+> swarms and tanks soak up your bullets, and every enemy that gets through takes a bite out of
+> your health bar. You have three lives.
+> After every wave, pick a booster: piercing bullets, side cannons, orbiting drones, chain
+> lightning, critical hits, a damage-soaking shield and more. You can only hold three at a time,
+> so every pick is a trade-off. Push your fire rate too hard and the gun overheats, so watch the
+> heat meter.
+> Every 5 waves one of 11 bosses arrives, each with its own trick: a Teleporter that blinks across
+> the screen, Pincers that revive each other, a Slider that races along the walls, a Jack in the
+> Box with a Hive inside, and more. Every boss bursts out a swarm of enemies each time it loses a
+> quarter of its health. Beat a boss to restore your health and win back a life. Mini bosses
+> crash the regular waves too.
+> Lose a life and your boosters scatter across the arena: shoot them to get them back.
+> Chain kills for up to x5 score and shoot power-ups to grab Spread Shot, Rapid Fire, Shields,
+> Heals and Bombs. How many waves can you survive?
 
 **Controls**
 - Mouse: aim, click or hold to fire
@@ -59,19 +64,26 @@ You need to do this part yourself: create the account, fill in the form, submit.
 To regenerate them: run `npm run dev`, open http://localhost:5173/store/covers.html and press **Save**.
 They follow the cover rules: only the title as text, no borders, logos or "Play" text.
 
-## 4. Preview video (you still need to record this)
-Requirements: 15–20 s, max 50 MB, **no sound**, no cursor, no fast-forward,
-no black bars, no promo text. Needs **two versions: 1080p landscape (16:9) and portrait (2:3)**.
-Start on the cover art.
+## 4. Preview videos (already recorded in `store/`)
+- `store/preview-landscape-1920x1080.mp4` (16:9, 18.5 s, about 28 MB)
+- `store/preview-portrait-1080x1620.mp4` (2:3, 18.5 s, about 30 MB)
 
-Suggested way to record it:
-1. Open `http://localhost:5173/src/?debug` in Chrome at 1920×1080 (F11 fullscreen).
-2. Press Play. In DevTools run
-   `Game.debug.god(true); Game.debug.upgrade('drone', 2); Game.debug.upgrade('chain', 2); Game.debug.boss('jack')`.
-   That records a boss fight with a flashy build, and you can't die while recording.
-3. Shoot a few power-ups (`Game.debug.drop('spread')`, `'bomb'`) to show them off.
-4. Record with OBS (cursor hidden), trim to about 18 s.
-5. Repeat in a 800×1200 window (DevTools device toolbar) for the portrait version.
+They meet the rules: 15–20 s, under 50 MB, **no sound**, no cursor, real speed, no black bars,
+no promo text, and each **opens on its static cover**, then fades into gameplay.
+The gameplay is a busy wave 12 with mini bosses, Spread and Rapid pick-ups, ending on a bomb.
+The videos are large, so git ignores them. Keep a copy before cleaning the folder.
+
+To re-record them (for example after changing the look of the game):
+1. `npm run dev`, then open `http://localhost:5173/src/?debug` in Chrome.
+2. In DevTools, turn on the device toolbar and set the size to 1920×1080 (DPR 1).
+3. In the console run:
+   ```js
+   await import('/tools/record-preview.js')
+   recordPreview({ name: 'preview-landscape-1920x1080.mp4', cover: '/store/cover-landscape-1920x1080.png', W: 1920, H: 1080 })
+   ```
+   It takes about 19 s and writes the MP4 into `store/`.
+4. Reload at 1080×1620 and run it again with
+   `{ name: 'preview-portrait-1080x1620.mp4', cover: '/store/cover-portrait-800x1200.png', W: 1080, H: 1620 }`.
 
 ## 5. What the SDK integration does (for the QA form)
 - `loadingStart` / `loadingStop` around boot

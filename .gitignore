@@ -1,3 +1,5 @@
 dist/
 build/
 node_modules/
+store/*.mp4
+store/_sheet-*.png
