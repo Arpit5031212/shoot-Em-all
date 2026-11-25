@@ -122,7 +122,10 @@
     life:   { color: '#ff6bd0', w: 0.9, label: '+30 HP' },
   };
 
+  const TOUCH = window.matchMedia && matchMedia('(pointer: coarse)').matches;
+  const FIRE_HINT = TOUCH ? 'TOUCH & HOLD TO AIM AND FIRE' : 'HOLD MOUSE (OR SPACE) TO FIRE';
   const WAVE_INTRO = {
+    1: 'Shoot everything before it reaches you.',
     2: 'New enemy: Darts. Fast and fragile.',
     3: 'New enemy: Zigzaggers. Lead your shots.',
     4: 'New enemy: Splitters. They break apart.',
@@ -137,7 +140,7 @@
   // ---------- state ----------
   const S = {
     phase: 'attract', // attract | playing | paused | dying | over
-    lowHp: false, alarmT: 0, reviveT: 0, heat: 0, overheated: false, heatWarn: false,
+    lowHp: false, alarmT: 0, reviveT: 0, heat: 0, overheated: false, heatWarn: false, hasFired: false,
     score: 0, wave: 0, lives: START_LIVES, kills: 0, hp: START_HP, maxHp: START_HP,
     toSpawn: 0, spawnTimer: 0, bannerT: 0,
     invuln: 0, shield: false, spread: 0, rapid: 0,
@@ -1308,6 +1311,7 @@
   // At full heat the gun locks until it has cooled to HEAT_RESUME.
   function tryFire() {
     if (S.cool > 0 || S.overheated) return;
+    S.hasFired = true;
     fire();
     S.cool = fireInterval();
     S.heat += HEAT_PER_SHOT * (1 + OVERCLOCK_HEAT * lvl('rate'));
@@ -2185,6 +2189,20 @@
       ctx.arc(cx, cy, pr + 10 * U + Math.sin(S.time * 4) * 2, 0, TAU);
       ctx.stroke();
     }
+    // First-run onboarding: pulse a "how to fire" prompt until the first shot
+    if (S.phase === 'playing' && S.wave === 1 && !S.hasFired) {
+      ctx.globalAlpha = 0.65 + 0.35 * Math.sin(S.time * 5);
+      ctx.font = `800 ${Math.round(13 * U + 3)}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillStyle = '#7dffea';
+      const hy = cy + arenaR() + 16 * U;
+      ctx.strokeText(FIRE_HINT, cx, hy);
+      ctx.fillText(FIRE_HINT, cx, hy);
+      ctx.globalAlpha = 1;
+    }
     // Heat gauge: a thin arc hugging the shooter, yellow -> orange -> red
     if (S.heat > 0.02 && S.phase !== 'attract') {
       const hcol = S.overheated ? (Math.floor(S.time * 10) % 2 ? '#ff3b3b' : '#ffffff')
@@ -2400,7 +2418,7 @@
         combo: 0, comboTimer: 0, mult: 1, bestCombo: 0,
         cool: 0.15, hurtFlash: 0, sinceDrop: 0, continued: false,
         up: {}, boss: null, bossPending: false, waveDone: false, armor: 0, armorMax: 0, droneCool: [],
-        bossPlan: {}, nextBoss: null, lowHp: false, alarmT: 0, reviveT: 0, heat: 0, overheated: false, heatWarn: false,
+        bossPlan: {}, nextBoss: null, lowHp: false, alarmT: 0, reviveT: 0, heat: 0, overheated: false, heatWarn: false, hasFired: false,
       });
       pointer.down = false;
       pointer.x = cx; pointer.y = cy - 100;
