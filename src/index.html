@@ -21,7 +21,12 @@
       <div class="hud-combo" id="hudCombo"></div>
     </div>
     <div class="hud-right">
-      <div class="lives" id="hudLives"></div>
+      <div class="vitals">
+        <div class="lives" id="hudLives"></div>
+        <div class="hpbar" id="hpBar"><i id="hpFill"></i><span id="hpText">100</span></div>
+        <div class="hpbar shbar hidden" id="shBar"><i id="shFill"></i><span id="shText"></span></div>
+        <div class="hpbar heatbar" id="heatBar"><i id="heatFill"></i><b id="heatMark"></b><span id="heatText">HEAT 0%</span></div>
+      </div>
       <button class="icon-btn" id="btnPause" aria-label="Pause">
         <svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
       </button>
@@ -30,6 +35,28 @@
       <div class="pill hidden" id="pwSpread" style="--c:#4dd2ff"><span>SPREAD</span><i></i></div>
       <div class="pill hidden" id="pwRapid" style="--c:#ffd84d"><span>RAPID</span><i></i></div>
       <div class="pill hidden" id="pwShield" style="--c:#7dffea"><span>SHIELD</span></div>
+    </div>
+    <div class="boss-bar hidden" id="bossBar">
+      <div class="boss-name" id="bossName"></div>
+      <div class="bars" id="bossBars"></div>
+    </div>
+    <div class="chips" id="hudUps"></div>
+  </div>
+
+  <!-- Upgrade choice (after every wave) -->
+  <div id="screenUpgrade" class="screen upgrade-screen hidden">
+    <div class="upgrade-wrap">
+      <div class="eyebrow">WAVE <span id="upWave">1</span> CLEARED</div>
+      <h2 id="upTitle">CHOOSE A BOOSTER</h2>
+      <div class="slots" id="upSlots"></div>
+      <div class="cards" id="upCards"></div>
+      <div class="drop hidden" id="upDrop">
+        <div class="drop-title">Your booster slots are full.<br>Drop one to take <b id="dropFor"></b>:</div>
+        <div class="cards" id="dropCards"></div>
+        <button class="btn ghost" id="btnDropBack">CHOOSE A DIFFERENT CARD</button>
+      </div>
+      <button class="btn ghost skip-btn" id="btnSkip">SKIP</button>
+      <div class="hint-small" id="upHint">Tap a card, or press 1 / 2 / 3</div>
     </div>
   </div>
 
@@ -57,9 +84,9 @@
         <div><svg viewBox="0 0 24 24" style="--c:#ffd84d"><path class="stroke" d="M6 6l5 6-5 6M13 6l5 6-5 6"/></svg>Rapid</div>
         <div><svg viewBox="0 0 24 24" style="--c:#7dffea"><path class="stroke" d="M12 3l8 3c0 7-3 12-8 15C7 18 4 13 4 6z"/></svg>Shield</div>
         <div><svg viewBox="0 0 24 24" style="--c:#ff4d6d"><circle cx="11" cy="14" r="6"/><path class="stroke" d="M15 9c1-3 3-4 5-3"/></svg>Bomb</div>
-        <div><svg viewBox="0 0 24 24" style="--c:#ff6bd0"><path d="M12 20C4 14 3 9 6 6.5S11 6 12 8c1-2 4-4 6-1.5S20 14 12 20z"/></svg>Life</div>
+        <div><svg viewBox="0 0 24 24" style="--c:#ff6bd0"><path d="M12 20C4 14 3 9 6 6.5S11 6 12 8c1-2 4-4 6-1.5S20 14 12 20z"/></svg>Heal</div>
       </div>
-      <p class="hint">Shoot power-ups to collect them.<br><span class="kbd">Space</span> fire &nbsp; <span class="kbd">P</span> pause &nbsp; <span class="kbd">M</span> mute</p>
+      <p class="hint">Shoot power-ups to collect them. Pick a booster after every wave (max 3).<br>A boss arrives every 5 waves.<br><span class="kbd">Space</span> fire &nbsp; <span class="kbd">P</span> pause &nbsp; <span class="kbd">M</span> mute</p>
     </div>
   </div>
 
@@ -84,6 +111,7 @@
         <div><span>Best combo</span><b id="overCombo">0</b></div>
         <div><span>Best</span><b id="overBest">0</b></div>
       </div>
+      <div class="chips over-chips" id="overUps"></div>
       <button class="btn reward hidden" id="btnContinue">
         <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9l5 3-5 3z" fill="#06070e"/></svg>
         CONTINUE
